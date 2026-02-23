@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainfall Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="weather-icon">🌦️</div>
+            <h1>Rainfall Predictor</h1>
+            <p>Advanced Weather Prediction System</p>
+        </div>
+
+        <div class="content">
+            <form id="predictionForm">
+                <div class="input-grid">
+                    <input type="hidden" id="id" name="id" value="0">
+                    <div class="input-group">
+                        <label for="day">Day</label>
+                        <input type="number" id="day" name="day" placeholder="Enter day (1-366)" min="1" max="366" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="pressure">Pressure (hPa)</label>
+                        <input type="number" id="pressure" name="pressure" placeholder="e.g., 1013.25" step="0.01" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="maxtemp">Max Temperature (°C)</label>
+                        <input type="number" id="maxtemp" name="maxtemp" placeholder="e.g., 30.5" step="0.1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="temparature">Temperature (°C)</label>
+                        <input type="number" id="temparature" name="temparature" placeholder="e.g., 25.0" step="0.1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="mintemp">Min Temperature (°C)</label>
+                        <input type="number" id="mintemp" name="mintemp" placeholder="e.g., 18.5" step="0.1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="dewpoint">Dew Point (°C)</label>
+                        <input type="number" id="dewpoint" name="dewpoint" placeholder="e.g., 15.0" step="0.1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="humidity">Humidity (%)</label>
+                        <input type="number" id="humidity" name="humidity" placeholder="e.g., 65" min="0" max="100" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cloud">Cloud Cover (oktas)</label>
+                        <input type="number" id="cloud" name="cloud" placeholder="e.g., 4" min="0" max="100" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sunshine">Sunshine (hours)</label>
+                        <input type="number" id="sunshine" name="sunshine" placeholder="e.g., 7.5" step="0.1" min="0" max="24" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="winddirection">Wind Direction (°)</label>
+                        <input type="number" id="winddirection" name="winddirection" placeholder="e.g., 180" min="0" max="360" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="windspeed">Wind Speed (km/h)</label>
+                        <input type="number" id="windspeed" name="windspeed" placeholder="e.g., 15.5" step="0.1" min="0" required>
+                    </div>
+                </div>
+
+                <div class="btn-container">
+                    <button type="submit" class="btn btn-predict">Predict Rainfall</button>
+                    <button type="reset" class="btn btn-reset">Reset Form</button>
+                </div>
+            </form>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-icon" id="resultIcon"></div>
+                <div class="result-text" id="resultText"></div>
+                <div class="result-subtext" id="resultSubtext"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('predictionForm');
+        const resultSection = document.getElementById('resultSection');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+        const resultSubtext = document.getElementById('resultSubtext');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = parseFloat(value);
+            });
+
+            // Show loading state
+            const predictBtn = document.querySelector('.btn-predict');
+            const originalText = predictBtn.textContent;
+            predictBtn.textContent = 'Predicting...';
+            predictBtn.disabled = true;
+
+            try {
+                // Call Flask API
+                const response = await fetch('http://127.0.0.1:5000/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayResult(result.rainfall);
+                } else {
+                    alert('Error: ' + (result.error || 'Prediction failed'));
+                }
+            } catch (error) {
+                alert('Error connecting to server: ' + error.message);
+            } finally {
+                // Reset button state
+                predictBtn.textContent = originalText;
+                predictBtn.disabled = false;
+            }
+        });
+
+        function displayResult(prediction) {
+            resultSection.classList.add('show');
+            
+            if (prediction === 1) {
+                resultIcon.textContent = '🌧️';
+                resultText.textContent = 'Rain Expected';
+                resultText.className = 'result-text rain';
+                resultSubtext.textContent = 'There is a high probability of rainfall today';
+            } else {
+                resultIcon.textContent = '☀️';
+                resultText.textContent = 'No Rain Expected';
+                resultText.className = 'result-text no-rain';
+                resultSubtext.textContent = 'Clear skies ahead! Perfect weather for outdoor activities';
+            }
+
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        form.addEventListener('reset', () => {
+            resultSection.classList.remove('show');
+        });
+    </script>
+</body>
+</html>
